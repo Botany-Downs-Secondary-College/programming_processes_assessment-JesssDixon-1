@@ -1,14 +1,15 @@
-from asyncio.windows_events import NULL
+#from asyncio.windows_events import NULL
 import tkinter as tk
 
-
-root = tk.Tk()
 
 class main(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         self.wm_title("Agendas Writing")
-        container = tk.Frame(self, height=4000, width=6000)
+        width= self.winfo_screenwidth()
+        height= self.winfo_screenheight()
+        self.geometry("%dx%d" % (width, height))
+        container = tk.Frame(self)
         container.grid(row = 0,column = 0)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
@@ -138,13 +139,11 @@ class New_Item(tk.Frame):
         item_des.grid(row=3, column=0)
         item_des_var = tk.Entry(self)
         item_des_var.grid(row=3, column=1)
-        
 
         action_type = tk.Label(self, text="Action Type") #make this a dropdown
         action_type.grid(row=4, column=0)
         action_type_var = tk.Entry(self)
         action_type_var.grid(row=4, column=1)
-        
 
         est_time = tk.Label(self, text="Estimated Time")
         est_time.grid(row=5, column=0)
