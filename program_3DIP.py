@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
-from tkinter import * #should import all modules
+from tkinter import *
 import psycopg2
-conn = psycopg2.connect(database="items", user="postgres", password="1234", host="127.0.0.1", port="5432")
+conn = psycopg2.connect(database="agenda_info", user="postgres", password="1234", host="127.0.0.1", port="5432")
 
 cursor = conn.cursor()
 
@@ -17,7 +17,7 @@ class main(tk.Tk):
         self['background'] = '#fff8f0'
         width= self.winfo_screenwidth()
         height= self.winfo_screenheight()
-        self.geometry("%dx%d" % (width, height))
+        #self.geometry("%dx%d" % (width, height))
 
         #Navigation mechanism setup
         container = tk.Frame(self)
@@ -39,6 +39,7 @@ class main(tk.Tk):
 class Meeting(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        frame = Meeting
         self['background'] = '#fff8f0'
 
         #navbar
@@ -46,12 +47,28 @@ class Meeting(tk.Frame):
         navbar_actions = tk.Button(self, text="Actions", command=lambda: controller.show_frame(Actions), bg = "#9dd9d2").grid(row = 0,column = 1)
         navbar_new_item = tk.Button(self, text="New Item", command=lambda: controller.show_frame(New_Item), bg = "#9dd9d2").grid(row = 0,column = 2)
 
-        label = tk.Label(self, text="HYC Leadership Team Meeting", bg= '#fff8f0').grid(row=1, column=4, sticky=EW)
+        def select_item(item_name_selected):
+            controller.show_frame(Item)
+            row_num = cursor.execute("SELECT ROW_NUMBER() OVER (ORDER BY priority) row_num, item_name FROM items")
+            #item_name = cursor.execute("SELECT item_name FROM items ORDER BY priority DESC")
+            items = cursor.fetchall()
+            print(item_name_selected)
+            for row_num in items:
+                print(row_num)
+            item_selected = x-4
+            return item_selected
 
-        label = tk.Label(self, text="Items List", bg= '#fff8f0').grid(row=2, column=4, sticky=EW) # Update when I know how many columns there will be
+        label = tk.Label(self, text="HYC Leadership Team Meeting", bg= '#fff8f0').grid(row=1, column=3, sticky=EW)
+        label = tk.Label(self, text="Insert Meeting information", bg= '#fff8f0').grid(row=2, column=3, sticky=EW)
+        label = tk.Label(self, text="Agenda:", bg= '#fff8f0').grid(row=3, column=3, sticky=EW)
 
-        #Item list - this should become a for loop that prints meeting details for each meeting
-        open_pg_items = tk.Button(self, text="Item", command=lambda: controller.show_frame(Item)).grid(row = 3,column = 4, sticky=EW)
+        item_name = cursor.execute("SELECT item_name FROM items ORDER BY priority DESC")
+        items = cursor.fetchall()
+        x=4
+        for item_name in items:
+            open_pg_items = tk.Button(self, text=item_name, command=lambda: select_item(item_name))
+            open_pg_items.grid(row = x,column = 4, columnspan=4, sticky=EW)
+            x=x+1            
 
 class Actions(tk.Frame):
     def __init__(self, parent, controller):
@@ -67,19 +84,38 @@ class New_Action(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
+        def submit():
+            controller.show_frame(Actions) 
+            action_name1 = action_name_var.get()
+            pic1 = pic_var.get()
+            due1 = due_var.get()
+            description1 = description_var.get()
+            cursor.execute("select * from actions")
+            cursor.execute("insert into actions values(%s, %s, %s, %s, %s)", (action_name1, pic1, due1, description1))
+            conn.commit()
+            action_name_var.delete(0, 'end')
+            pic_var.delete(0, 'end')
+            due_var.delete(0, 'end')
+            description_var.delete(0, 'end')
+            cursor.fetchall()
+
         navbar_actions = tk.Button(self, text="Back to Actions List", bg = "#9dd9d2", command=lambda: controller.show_frame(Actions)).grid(row = 0,column = 0, sticky=W)
         
         # New Action Form ~~~
         heading = tk.Label(self, text="Add a New Action", bg= '#fff8f0').grid(row=1, column=2, sticky=EW)
         action_name = tk.Label(self, text="Action Name", bg= '#fff8f0').grid(row=2, column=1, sticky=EW)
-        action_name_var = ttk.Entry(self).grid(row=2, column=2, sticky=EW)
+        action_name_var = ttk.Entry(self)
+        action_name_var.grid(row=2, column=2, sticky=EW)
         pic = tk.Label(self, text="Person in Charge", bg= '#fff8f0').grid(row=3, column=1, sticky=EW) #make this a dropdown
-        pic_var = ttk.Entry(self).grid(row=3, column=2, sticky=EW)
+        pic_var = ttk.Entry(self)
+        pic_var.grid(row=3, column=2, sticky=EW)
         due = tk.Label(self, text="Due date", bg= '#fff8f0').grid(row=4, column=1, sticky=EW)
-        due_var = ttk.Entry(self).grid(row=4, column=2, sticky=EW)
+        due_var = ttk.Entry(self)
+        due_var.grid(row=4, column=2, sticky=EW)
         description = tk.Label(self, text="Action Type", bg= '#fff8f0').grid(row=5, column=1, sticky=EW) #make this a dropdown
-        description_var = ttk.Entry(self).grid(row=5, column=2, sticky=EW)
-        #add = tk.Button(self, text="Add Item to Agenda", bg="#ff8811", command=lambda: controller.show_frame(Actions)).grid(row=8, column=1)
+        description_var = ttk.Entry(self)
+        description_var.grid(row=5, column=2, sticky=EW)
+        add = tk.Button(self, text="Add Item to Agenda", bg="#ff8811", command=submit).grid(row=8, column=1)
 
 class Item(tk.Frame):
     def __init__(self, parent, controller):
@@ -92,6 +128,14 @@ class Item(tk.Frame):
         navbar_actions = tk.Button(self, text="Actions", command=lambda: controller.show_frame(Actions), bg = "#9dd9d2").grid(row = 0,column = 1)
         navbar_new_action = tk.Button(self, text="New Action", command=lambda: controller.show_frame(New_Action), bg = "#9dd9d2").grid(row = 0,column = 2)
         label = tk.Label(self, text="Item information").grid(row=1, column=3, columnspan=3) # Update when I know how many columns there will be
+
+        item_name = cursor.execute("select item_name from items")
+        priority = cursor.execute("select priority from items")
+        item_des = cursor.execute("select item_des from items")
+        action_type = cursor.execute("select action_type from items")
+        est_time = cursor.execute("select est_time from items")
+        items = cursor.fetchall()
+
         #Save button
 
 class New_Item(tk.Frame):
@@ -99,21 +143,21 @@ class New_Item(tk.Frame):
         tk.Frame.__init__(self, parent)
         
         def submit():
-            #controller.show_frame(Meeting) 
+            controller.show_frame(Meeting) 
             item_name1 = item_name_var.get()
             priority1 = priority_var.get()
             item_des1 = item_des_var.get()
             action_type1 = action_type_var.get()
             est_time1 = est_time_var.get()
             cursor.execute("select * from items")
-            #cursor.execute("insert into items values(%s, %s, %s, %s, %s)", (item_name1, priority1, item_des1, action_type1, est_time1))
-            #print(cursor.fetchall())
+            cursor.execute("insert into items values(%s, %s, %s, %s, %s)", (item_name1, priority1, item_des1, action_type1, est_time1))
             conn.commit()
             item_name_var.delete(0, 'end')
             priority_var.delete(0, 'end')
             item_des_var.delete(0, 'end')
             action_type_var.delete(0, 'end')
             est_time_var.delete(0, 'end')
+            cursor.fetchall()
 
         #navbar
         navbar_meetings = tk.Button(self, text="My Meetings", command=lambda: controller.show_frame(Meeting), bg = "#9dd9d2").grid(row = 0,column = 0)
